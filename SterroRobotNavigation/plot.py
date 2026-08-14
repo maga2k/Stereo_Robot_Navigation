@@ -1,25 +1,31 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-def print_summary(frames_list, dist_list, alarm_list, chess_frames):
+def print_summary(frames_list, dist_list, alarm_list, chess_frames, sad_times=None, opt1=False):
     """Print a summary of the processing results to the terminal."""
     print(f"\n📊 Frames processed  : {len(frames_list)}")
     print(f"   Min distance      : {min(dist_list):.3f} m")
     print(f"   Max distance      : {max(dist_list):.3f} m")
     print(f"   Alarm frames      : {sum(alarm_list)}")
     print(f"   Chessboard frames : {len(chess_frames)}")
+    if sad_times:
+        avg_sad = np.mean(sad_times)
+        print(f"\n⏱ SAD average: {avg_sad * 1000:.2f} ms/frame")
+        print(f"   SAD minimum: {np.min(sad_times) * 1000:.2f} ms/frame")
+        print(f"   SAD maximum: {np.max(sad_times) * 1000:.2f} ms/frame")
 
 
-def plot_navigation(frames_list, dist_list, dmain_list, alarm_list,
-                    save_path="output/plot_navigation.png"):
+def plot_navigation(frames_list, dist_list, dmain_list, alarm_list, sad_times=None, opt1=False, save_path="output/plot_navigation.png"):
     """
     Main navigation plot:
       - Estimated distance over time with alarm shading
       - d_main disparity over time
       - Distance histogram
     """
-    fig, axes = plt.subplots(3, 1, figsize=(12, 9))
-    fig.suptitle("Stereo Robot Navigation — Distance Estimation", fontsize=13, fontweight="bold")
+    fig, axes = plt.subplots(4, 1, figsize=(12, 9))
+    title_suffix = " — Optional 1" if opt1 else ""
+    fig.suptitle("Stereo Robot Navigation — Distance Estimation" + title_suffix, fontsize=13, fontweight="bold")
 
     # Distance over time
     axes[0].plot(frames_list, dist_list, color="steelblue", linewidth=1.5)
@@ -47,7 +53,33 @@ def plot_navigation(frames_list, dist_list, dmain_list, alarm_list,
     axes[2].legend()
     axes[2].grid(True, alpha=0.3)
 
+    times_ms = np.array(sad_times) * 1000
+
+    axes[3].plot(
+        frames_list,
+        times_ms,
+        linewidth=1.2
+    )
+
+    mean_time = np.mean(times_ms)
+
+    axes[3].axhline(
+        mean_time,
+        linestyle="--",
+        linewidth=1.2,
+        label=f"Mean: {mean_time:.2f} ms/frame"
+    )
+
+    axes[3].set_xlabel("Frame")
+    axes[3].set_ylabel("Time (ms)")
+    axes[3].set_title("SAD computational cost")
+    axes[3].legend()
+    axes[3].grid(True, alpha=0.3)
+
     plt.tight_layout()
+    file_suffix = "_opt1" if opt1 else ""
+    if save_path.endswith(".png"):
+        save_path = save_path[:-4] + file_suffix + ".png"
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
     print(f"✅ Plot saved: {save_path}")

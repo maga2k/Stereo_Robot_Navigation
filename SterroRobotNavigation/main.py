@@ -9,9 +9,10 @@ import plot
 import optional1 as opt1
 import optional2 as opt2
 import optional3 as opt3
+import time
 
 #enable optionals: [opt1, opt2, opt3]
-Enables = [False, True, True] 
+Enables = [False, False, False] 
 
 #output folder
 os.makedirs("output", exist_ok=True)
@@ -75,6 +76,7 @@ frames_list = []
 dmain_list  = []
 dist_list   = []
 alarm_list  = []
+sad_times = []
 
 chess_frames = []
 dchess_list  = []
@@ -123,13 +125,22 @@ while True:
 
     if Enables[0] and d_main_prev is not None:  #opt1 modifies base range
         d_min_opt1, d_max_opt1 = opt1.get_dynamic_range(d_main_prev)
-        disp_map_base = SAD.compute_sad_disparity(grayL, grayR, par.window,
-                                                   d_max_opt1 - d_min_opt1,
-                                                   d_min=d_min_opt1)
+        SAD_disp_range = d_max_opt1 - d_min_opt1
     else:
-        disp_map_base = SAD.compute_sad_disparity(grayL, grayR, par.window, par.d_range)
+        #normal: full disparity range
+        d_min_opt1 = 0
+        d_max_opt1 = par.d_range
+        SAD_disp_range = par.d_range
 
-    d_main_base = SAD.get_dmain(disp_map_base, cx, cy, par.center_area, par.d_range)
+    #measure SAD computational cost
+    t_SAD_start = time.perf_counter()
+    disp_map_base = SAD.compute_sad_disparity(grayL, grayR, par.window, SAD_disp_range, d_min = d_min_opt1)
+    t_SAD_end = time.perf_counter()
+
+    sad_time = t_SAD_end - t_SAD_start
+    sad_times.append(sad_time)
+
+    d_main_base = SAD.get_dmain(disp_map_base, cx, cy, par.center_area, d_min=d_min_opt1, d_max=d_max_opt1)
 
     #opt3: Moravec + uniqueness
     if Enables[2]:
@@ -290,8 +301,8 @@ csv_file.close()
 csv_file_chess.close()
 
 #plots
-plot.print_summary(frames_list, dist_list, alarm_list, chess_frames)
-plot.plot_navigation(frames_list, dist_list, dmain_list, alarm_list)
+plot.print_summary(frames_list, dist_list, alarm_list, chess_frames, sad_times, opt1 = Enables[0])
+plot.plot_navigation(frames_list, dist_list, dmain_list, alarm_list, sad_times, opt1 = Enables[0])
 plot.plot_chessboard(chess_frames, West_list, Hest_list, errW_list, errH_list,
                      frames_list, dist_list, par.w_real, par.h_real)
 if Enables[1]:

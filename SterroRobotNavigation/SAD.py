@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import parameters as par
 
 
 def compute_sad_disparity(grayL, grayR, win_size, disp_range, d_min=0):
@@ -48,7 +49,7 @@ def compute_sad_disparity(grayL, grayR, win_size, disp_range, d_min=0):
     return disparity_map
 
 
-def get_dmain(disp_map, cx, cy, area_size, d_range):
+def get_dmain(disp_map, cx, cy, area_size, d_min=0, d_max = par.d_range):
     """
     Estimate the main disparity d_main over a central square ROI.
 
@@ -71,8 +72,8 @@ def get_dmain(disp_map, cx, cy, area_size, d_range):
     if len(valid) == 0:
         return None
 
-    hist, _ = np.histogram(valid, bins=d_range, range=(1, d_range))
-    d_main  = int(np.argmax(hist) + 1)
+    hist, _ = np.histogram(valid, bins=d_max - d_min, range=(d_min, d_max))
+    d_main  = int(np.argmax(hist) + d_min)
     return d_main
 
 
